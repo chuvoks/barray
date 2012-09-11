@@ -6,7 +6,7 @@ version := "1.0.0-SNAPSHOT"
 
 scalaVersion := "2.10.0-M7"
 
-javacOptions ++= Seq("-source", "1.7", "-target", "1.7")
+javacOptions ++= Seq("-source", "1.6", "-target", "1.6")
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-Xlint", "-optimise")
 
