@@ -1,0 +1,7 @@
+#!/bin/dash
+##
+# extract test names from caliper output
+##
+fname=barray-caliper.txt.doc
+grep "^.\+5778" "$fname" | grep "Vector " | awk '{print $2}' | sed 's/Vector//' | xargs -n 1 ./plo "$fname"
+

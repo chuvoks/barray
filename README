@@ -1,0 +1,6 @@
+Balanced tree based IndexedSeq implementation for Scala
+=======================================================
+
+ - BArray/		Actual implementation
+ - BArrayBench/		Google Caliper benchmark suite
+

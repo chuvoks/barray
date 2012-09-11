@@ -1,0 +1,15 @@
+Google Caliper benchmark for BArray
+===================================
+
+BArray needs to be deployed in local Maven repository before benchmark 
+can be executed:
+
+cd ../BArray
+sbt clean publish
+cd ../BArrayBench
+mvn scala:run -Dlauncher=benchmark
+
+
+Caliper output can be rendered on *nix systems if gnuplot is installed. 
+See the script for details: BArrayBench/src/plot/render.
+
