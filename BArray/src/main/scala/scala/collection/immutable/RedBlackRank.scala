@@ -1,3 +1,6 @@
+/*
+ * Copyright (c) 2012 Juha Heljoranta
+ */
 package scala.collection
 package immutable
 
