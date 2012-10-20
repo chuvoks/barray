@@ -4,15 +4,13 @@ organization := "org.Ox2b"
 
 version := "1.0.0-SNAPSHOT"
 
-scalaVersion := "2.10.0-M7"
+scalaVersion := "2.10.0-RC1"
+
+scalaBinaryVersion := "2.10.0-RC1"
 
 javacOptions ++= Seq("-source", "1.6", "-target", "1.6")
 
 scalacOptions ++= Seq("-unchecked", "-deprecation", "-Xlint", "-optimise")
-
-EclipseKeys.createSrc := EclipseCreateSrc.Default + EclipseCreateSrc.Resource
-
-EclipseKeys.executionEnvironment := Some(EclipseExecutionEnvironment.JavaSE17)
 
 resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
 
@@ -20,5 +18,6 @@ publishTo := Some(Resolver.file("file",  new File(Path.userHome.absolutePath+"/.
 
 libraryDependencies ++= Seq(
   "junit" % "junit" % "4.10" % "test",
-   "org.scalatest" % "scalatest_2.10.0-M7" % "1.9-2.10.0-M7-B1"
+  "org.scala-lang" % "scala-actors" % "2.10.0-RC1" % "test", 
+  "org.scalatest" %% "scalatest" % "2.0.M4"
 )
