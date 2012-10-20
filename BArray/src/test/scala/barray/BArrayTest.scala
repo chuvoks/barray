@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2012 Juha Heljoranta
  */
-package scala.collection.immutable
+package barray
 import org.junit.runner.RunWith
 import org.scalatest.FunSuite
 import org.scalatest.junit.JUnitRunner

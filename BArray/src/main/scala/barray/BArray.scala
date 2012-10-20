@@ -1,16 +1,14 @@
 /*
  * Copyright (c) 2012 Juha Heljoranta
  */
-package scala.collection
-package immutable
+package barray
 
-import immutable.{ RedBlackRank => RB }
+import barray.{ RedBlackRank => RB }
 import scala.annotation.unchecked.uncheckedVariance
 import compat.Platform
 import scala.collection.generic._
 import scala.collection.mutable.Builder
 import scala.collection.mutable.ArrayBuffer
-import scala.collection.AbstractSeq
 import scala.collection.IndexedSeqLike
 import scala.collection.GenTraversableOnce
 import scala.collection.GenSeq
@@ -24,7 +22,7 @@ import scala.collection.mutable.ArrayBuilder
  */
 object BArray extends SeqFactory[BArray] {
 
-  private[collection] class BArrayReusableCBF extends GenericCanBuildFrom[Nothing] {
+  private[barray] class BArrayReusableCBF extends GenericCanBuildFrom[Nothing] {
     override def apply() = newBuilder[Nothing]
   }
 
@@ -35,7 +33,7 @@ object BArray extends SeqFactory[BArray] {
   @inline implicit def canBuildFrom[A]: CanBuildFrom[Coll, A, BArray[A]] =
     BArrayReusableCBF.asInstanceOf[CanBuildFrom[Coll, A, BArray[A]]]
 
-  private[immutable] val NIL = new BArray[Nothing]()
+  private[barray] val NIL = new BArray[Nothing]()
   @inline override def empty[A]: BArray[A] = NIL
 
   private def toTree[A](xs: TraversableOnce[A]): RB.Tree[A] = {
@@ -61,9 +59,8 @@ object BArray extends SeqFactory[BArray] {
  *
  * Provides O(log(n)) element insert, update and removal.
  */
-final class BArray[+A] private[immutable] (private[immutable] val tree: RB.Tree[A])
-  extends AbstractSeq[A]
-  with IndexedSeq[A]
+final class BArray[+A] private[barray] (private[barray] val tree: RB.Tree[A])
+  extends IndexedSeq[A]
   with GenericTraversableTemplate[A, BArray]
   with IndexedSeqLike[A, BArray[A]]
   with Serializable { self =>

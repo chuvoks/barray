@@ -1,14 +1,13 @@
 /*
  * Copyright (c) 2012 Juha Heljoranta
  */
-package scala.collection
-package immutable
+package barray
 
 import annotation.tailrec
 import annotation.meta.getter
 
 // based on RedBlackTree from Scala 2.10
-private[immutable] object RedBlackRank {
+private[barray] object RedBlackRank {
 
   def isEmpty(tree: Tree[_]): Boolean = tree eq null
 
@@ -62,7 +61,7 @@ private[immutable] object RedBlackRank {
     mkTree(isBlackTree(tree), v, l, r)
   }
 
-  private[immutable] def blindMap[U](tree: Tree[_], f: => U): Tree[U] = if (tree eq null) null else {
+  private[barray] def blindMap[U](tree: Tree[_], f: => U): Tree[U] = if (tree eq null) null else {
     val l = if (tree.left ne null) blindMap(tree.left, f) else null
     val v = f
     val r = if (tree.right ne null) blindMap(tree.right, f) else null
@@ -82,7 +81,7 @@ private[immutable] object RedBlackRank {
     mkTree(isBlackTree(tree), tree.value, r, l)
   }
 
-  private[immutable] def forwardWhile[B](tree: Tree[B], p: B => Boolean): Boolean = if (tree eq null) true else {
+  private[barray] def forwardWhile[B](tree: Tree[B], p: B => Boolean): Boolean = if (tree eq null) true else {
     ((tree.left eq null) || forwardWhile(tree.left, p)) &&
       p(tree.value) &&
       ((tree.right eq null) || forwardWhile(tree.right, p))
@@ -505,7 +504,7 @@ private[immutable] object RedBlackRank {
   }
 
   // adapted from Scala 2.10 tests
-  private[immutable] def invariants[B](t: Tree[B]) {
+  private[barray] def invariants[B](t: Tree[B]) {
 
     def height(tree: Tree[_]): Int = if (tree eq null) 0 else (1 + math.max(height(tree.left), height(tree.right)))
 
