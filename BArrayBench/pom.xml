@@ -10,13 +10,13 @@
 		<maven.compiler.target>1.6</maven.compiler.target>
 		<encoding>UTF-8</encoding>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<scala.version>2.10.0-M7</scala.version>
+		<scala.version>2.10.0-RC1</scala.version>
 	</properties>
 
 	<dependencies>
 		<dependency>
 			<groupId>org.Ox2b</groupId>
-			<artifactId>barray_2.10</artifactId>
+			<artifactId>barray_2.10.0-RC1</artifactId>
 			<version>1.0.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
@@ -55,7 +55,7 @@
 						<!-- usage: mvn scala:run -Dlauncher=benchmark -->
 						<launcher>
 							<id>benchmark</id>
-							<mainClass>scala.collection.immutable.BArrayBenchmark</mainClass>
+							<mainClass>barray.BArrayBenchmark</mainClass>
 						</launcher>
 					</launchers>
 				</configuration>
