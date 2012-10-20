@@ -1,20 +1,22 @@
-package scala.collection.immutable
+package barray
 
 import com.google.caliper.SimpleBenchmark
 import com.google.caliper.Runner
 import com.google.caliper.Param
+import rrbvector.{ Vector => RRBV }
 import scala.util.Random
 import java.lang.Class
 import scala.collection.mutable.WrappedArray
 
 class BArrayBenchmark extends SimpleBenchmark {
 
+  // var gr = ( 1 + math.sqrt(5) ) / 2; (0 to 24 by 2).map(a => math.round(math.pow(gr,a)))
   // 1, 3, 7, 18, 47, 123, 322, 843, 2207, 5778, 15127, 39603, 103682, 271443, 710647, 1860498, 4870847
   @Param(Array("3", "7", "18", "47", "123", "322", "843", "2207", "5778", "15127"))
   var size: Int = _
 
-  var tset: TreeSet[Int] = _
   var vec: Vector[Int] = _
+  var rrbv: RRBV[Int] = _
   var ba: BArray[Int] = _
   var idxs: Array[Int] = _ // relative positions at 0.25, 0.5 and 0.75
   var list: List[Int] = _
@@ -23,10 +25,25 @@ class BArrayBenchmark extends SimpleBenchmark {
   override protected def setUp() {
     idxs = if (size > 0) Array(size / 4, size / 2, size * 3 / 4) else Array()
     vec = Vector.empty ++ (0 until size)
+    rrbv = RRBV.empty ++ (0 until size)
     ba = BArray.empty ++ (0 until size)
-    tset = TreeSet.empty[Int] ++ vec
     list = List.empty ++ (size to (size * 2))
     rndList = List.empty ++ Random.shuffle((0 to size))
+  }
+
+  def timeAppendSizeRRBV(reps: Int): Any = {
+    var i = 0
+    var v = rrbv
+    while (i < reps) {
+      var j = 0
+      v = RRBV()
+      while (j < size) {
+        v = v :+ j
+        j += 1
+      }
+      i += 1
+    }
+    v
   }
 
   def timeAppendSizeVector(reps: Int): Any = {
@@ -59,27 +76,27 @@ class BArrayBenchmark extends SimpleBenchmark {
     v
   }
 
-  def timeAppendSizeTreeSet(reps: Int): Any = {
-    var i = 0
-    var v = tset
-    while (i < reps) {
-      var j = 0
-      v = TreeSet()
-      while (j < size) {
-        v = v + j
-        j += 1
-      }
-      i += 1
-    }
-    v
-  }
-
   def timePrependSizeVector(reps: Int): Any = {
     var i = 0
     var a = vec
     while (i < reps) {
       var j = 0
       a = Vector()
+      while (j < size) {
+        a = j +: a
+        j += 1
+      }
+      i += 1
+    }
+    a
+  }
+
+  def timePrependSizeRRBV(reps: Int): Any = {
+    var i = 0
+    var a = rrbv
+    while (i < reps) {
+      var j = 0
+      a = RRBV()
       while (j < size) {
         a = j +: a
         j += 1
@@ -114,21 +131,21 @@ class BArrayBenchmark extends SimpleBenchmark {
     a
   }
 
-  def timeMapBArray(reps: Int): Any = {
+  def timeMapRRBV(reps: Int): Any = {
     var i = 0
-    var a = ba
+    var a = rrbv
     while (i < reps) {
-      a = ba.map(x => x + 1)
+      a = rrbv.map(x => x + 1)
       i += 1
     }
     a
   }
 
-  def timeMapTreeSet(reps: Int): Any = {
+  def timeMapBArray(reps: Int): Any = {
     var i = 0
-    var a = tset
+    var a = ba
     while (i < reps) {
-      a = tset.map(x => x + 1)
+      a = ba.map(x => x + 1)
       i += 1
     }
     a
@@ -144,21 +161,21 @@ class BArrayBenchmark extends SimpleBenchmark {
     a
   }
 
-  def timeForeachBArray(reps: Int): Any = {
+  def timeForeachRRBV(reps: Int): Any = {
     var i = 0
     var a = 0
     while (i < reps) {
-      ba.foreach(x => a = x)
+      rrbv.foreach(x => a = x)
       i += 1
     }
     a
   }
 
-  def timeForeachTreeSet(reps: Int): Any = {
+  def timeForeachBArray(reps: Int): Any = {
     var i = 0
     var a = 0
     while (i < reps) {
-      tset.foreach(x => a = x)
+      ba.foreach(x => a = x)
       i += 1
     }
     a
@@ -174,21 +191,21 @@ class BArrayBenchmark extends SimpleBenchmark {
     a
   }
 
-  def timeSelfCatBArray(reps: Int): Any = {
+  def timeSelfCatRRBV(reps: Int): Any = {
     var i = 0
-    var a = ba
+    var a = rrbv
     while (i < reps) {
-      a = ba ++ ba
+      a = rrbv ++ rrbv
       i += 1
     }
     a
   }
 
-  def timeSelfCatTreeSet(reps: Int): Any = {
+  def timeSelfCatBArray(reps: Int): Any = {
     var i = 0
-    var a = tset
+    var a = ba
     while (i < reps) {
-      a = tset ++ tset
+      a = ba ++ ba
       i += 1
     }
     a
@@ -204,17 +221,17 @@ class BArrayBenchmark extends SimpleBenchmark {
     a
   }
 
-  def timeCatListBArray(reps: Int): Any = {
+  def timeCatListRRBV(reps: Int): Any = {
     var i = 0
-    var a = ba
+    var a = rrbv
     while (i < reps) {
-      a = ba ++ list
+      a = rrbv ++ list
       i += 1
     }
     a
   }
 
-  def timeCatListTreeSet(reps: Int): Any = {
+  def timeCatListBArray(reps: Int): Any = {
     var i = 0
     var a = ba
     while (i < reps) {
@@ -234,6 +251,15 @@ class BArrayBenchmark extends SimpleBenchmark {
     a
   }
 
+  def timeHeadRRBV(reps: Int): Any = {
+    var i = 0
+    var a = 0
+    while (i < reps) {
+      a = rrbv.head
+      i += 1
+    }
+    a
+  }
   def timeHeadBArray(reps: Int): Any = {
     var i = 0
     var a = 0
@@ -244,31 +270,21 @@ class BArrayBenchmark extends SimpleBenchmark {
     a
   }
 
-  def timeLastVector(reps: Int): Any = {
-    var i = 0
-    var a = 0
-    while (i < reps) {
-      a = vec.last
-      i += 1
-    }
-    a
-  }
-
-  def timeLastBArray(reps: Int): Any = {
-    var i = 0
-    var a = 0
-    while (i < reps) {
-      a = ba.last
-      i += 1
-    }
-    a
-  }
-
   def timeTailVector(reps: Int): Any = {
     var i = 0
     var a = vec
     while (i < reps) {
       a = vec.tail
+      i += 1
+    }
+    a
+  }
+
+  def timeTailRRBV(reps: Int): Any = {
+    var i = 0
+    var a = rrbv
+    while (i < reps) {
+      a = rrbv.tail
       i += 1
     }
     a
@@ -289,6 +305,16 @@ class BArrayBenchmark extends SimpleBenchmark {
     var a = vec
     while (i < reps) {
       a = vec.init
+      i += 1
+    }
+    a
+  }
+
+  def timeInitRRBV(reps: Int): Any = {
+    var i = 0
+    var a = rrbv
+    while (i < reps) {
+      a = rrbv.init
       i += 1
     }
     a
@@ -315,6 +341,17 @@ class BArrayBenchmark extends SimpleBenchmark {
     a
   }
 
+  def timeGet3RRBV(reps: Int): Any = {
+    var i = 0
+    var a = 0
+    while (i < reps) {
+      for { j <- idxs }
+        a = rrbv(j)
+      i += 1
+    }
+    a
+  }
+
   def timeGet3BArray(reps: Int): Any = {
     var i = 0
     var a = 0
@@ -336,6 +373,16 @@ class BArrayBenchmark extends SimpleBenchmark {
     a
   }
 
+  def timeFilterTrueRRBV(reps: Int): Any = {
+    var i = 0
+    var a = rrbv
+    while (i < reps) {
+      a = rrbv.filter(x => x >= 0)
+      i += 1
+    }
+    a
+  }
+
   def timeFilterTrueBArray(reps: Int): Any = {
     var i = 0
     var a = ba
@@ -346,21 +393,21 @@ class BArrayBenchmark extends SimpleBenchmark {
     a
   }
 
-  def timeFilterTrueTreeSet(reps: Int): Any = {
-    var i = 0
-    var a = tset
-    while (i < reps) {
-      a = tset.filter(x => x >= 0)
-      i += 1
-    }
-    a
-  }
-
   def timeTakeWhileTrueVector(reps: Int): Any = {
     var i = 0
     var a = vec
     while (i < reps) {
       a = vec.takeWhile(x => x >= 0)
+      i += 1
+    }
+    a
+  }
+
+  def timeTakeWhileTrueRRBV(reps: Int): Any = {
+    var i = 0
+    var a = rrbv
+    while (i < reps) {
+      a = rrbv.takeWhile(x => x >= 0)
       i += 1
     }
     a
@@ -387,6 +434,23 @@ class BArrayBenchmark extends SimpleBenchmark {
     a
   }
 
+        
+//  java.lang.ClassCastException: [I cannot be cast to [Ljava.lang.Object;
+//        at rrbvector.Vector.updateTrie(RRBVector.scala:771)
+//        at rrbvector.Vector.updateTrie(RRBVector.scala:763)
+//        at rrbvector.Vector.updateAt(RRBVector.scala:746)
+//        at rrbvector.Vector.updated(RRBVector.scala:126)
+//  def timeUpdated3RRBV(reps: Int): Any = {
+//    var i = 0
+//    var a = rrbv
+//    while (i < reps) {
+//      for { j <- idxs }
+//        a = rrbv.updated(j, j)
+//      i += 1
+//    }
+//    a
+//  }
+
   def timeUpdated3BArray(reps: Int): Any = {
     var i = 0
     var a = ba
@@ -404,6 +468,17 @@ class BArrayBenchmark extends SimpleBenchmark {
     while (i < reps) {
       for { j <- idxs }
         a = vec.patch(j, Vector(j), 0)
+      i += 1
+    }
+    a
+  }
+
+  def timeInserted3RRBV(reps: Int): Any = {
+    var i = 0
+    var a = rrbv
+    while (i < reps) {
+      for { j <- idxs }
+        a = rrbv.patch(j, RRBV(j), 0)
       i += 1
     }
     a
@@ -431,6 +506,17 @@ class BArrayBenchmark extends SimpleBenchmark {
     a
   }
 
+  def timeRemoved3RRBV(reps: Int): Any = {
+    var i = 0
+    var a = rrbv
+    while (i < reps) {
+      for { j <- idxs }
+        a = rrbv.patch(j, RRBV.empty, 1)
+      i += 1
+    }
+    a
+  }
+
   def timeRemoved3BArray(reps: Int): Any = {
     var i = 0
     var a = ba
@@ -453,23 +539,23 @@ class BArrayBenchmark extends SimpleBenchmark {
     a
   }
 
+  def timeSplitAt3RRBV(reps: Int): Any = {
+    var i = 0
+    var a = (rrbv, rrbv)
+    while (i < reps) {
+      for { j <- idxs }
+        a = rrbv.splitAt(j)
+      i += 1
+    }
+    a
+  }
+
   def timeSplitAt3BArray(reps: Int): Any = {
     var i = 0
     var a = (ba, ba)
     while (i < reps) {
       for { j <- idxs }
         a = ba.splitAt(j)
-      i += 1
-    }
-    a
-  }
-
-  def timeSplitAt3TreeSet(reps: Int): Any = {
-    var i = 0
-    var a = (tset, tset)
-    while (i < reps) {
-      for { j <- idxs }
-        a = tset.splitAt(j)
       i += 1
     }
     a
@@ -486,23 +572,23 @@ class BArrayBenchmark extends SimpleBenchmark {
     a
   }
 
+  def timeTake3RRBV(reps: Int): Any = {
+    var i = 0
+    var a = rrbv
+    while (i < reps) {
+      for { j <- idxs }
+        a = rrbv.take(j)
+      i += 1
+    }
+    a
+  }
+
   def timeTake3BArray(reps: Int): Any = {
     var i = 0
     var a = ba
     while (i < reps) {
       for { j <- idxs }
         a = ba.take(j)
-      i += 1
-    }
-    a
-  }
-
-  def timeTake3TreeSet(reps: Int): Any = {
-    var i = 0
-    var a = tset
-    while (i < reps) {
-      for { j <- idxs }
-        a = tset.take(j)
       i += 1
     }
     a
@@ -518,6 +604,16 @@ class BArrayBenchmark extends SimpleBenchmark {
     a
   }
 
+  def timeItrSizeRRBV(reps: Int): Any = {
+    var i = 0
+    var a = 0
+    while (i < reps) {
+      a = rrbv.iterator.size
+      i += 1
+    }
+    a
+  }
+
   def timeItrSizeBArray(reps: Int): Any = {
     var i = 0
     var a = 0
@@ -528,21 +624,21 @@ class BArrayBenchmark extends SimpleBenchmark {
     a
   }
 
-  def timeItrSizeTreeSet(reps: Int): Any = {
-    var i = 0
-    var a = 0
-    while (i < reps) {
-      a = tset.iterator.size
-      i += 1
-    }
-    a
-  }
-
   def timeReverseVector(reps: Int): Any = {
     var i = 0
     var a = vec
     while (i < reps) {
       a = vec.reverse
+      i += 1
+    }
+    a
+  }
+
+  def timeReverseRRBV(reps: Int): Any = {
+    var i = 0
+    var a = rrbv
+    while (i < reps) {
+      a = rrbv.reverse
       i += 1
     }
     a
@@ -563,6 +659,16 @@ class BArrayBenchmark extends SimpleBenchmark {
     var a = vec
     while (i < reps) {
       a = vec.reverseMap(_ + 1)
+      i += 1
+    }
+    a
+  }
+
+  def timeReverseMapRRBV(reps: Int): Any = {
+    var i = 0
+    var a = rrbv
+    while (i < reps) {
+      a = rrbv.reverseMap(_ + 1)
       i += 1
     }
     a
@@ -590,19 +696,19 @@ class BArrayBenchmark extends SimpleBenchmark {
     }
     a
   }
-
-  def timeBinsertedVector(reps: Int): Any = {
-    var i = 0
-    var a = Vector.empty[Int]
-    while (i < reps) {
-      a = Vector.empty[Int]
-      for (x <- rndList) {
-        a = (a :+ x).sorted //TODO do proper binary search
-      }
-      i += 1
-    }
-    a
-  }
+  //
+  //  def timeBinsertedVector(reps: Int): Any = {
+  //    var i = 0
+  //    var a = Vector.empty[Int]
+  //    while (i < reps) {
+  //      a = Vector.empty[Int]
+  //      for (x <- rndList) {
+  //        a = (a :+ x).sorted //TODO do proper binary search
+  //      }
+  //      i += 1
+  //    }
+  //    a
+  //  }
 
 }
 
