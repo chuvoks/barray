@@ -56,6 +56,10 @@
 						<launcher>
 							<id>benchmark</id>
 							<mainClass>barray.BArrayBenchmark</mainClass>
+							<jvmArgs>
+								<jvmArg>-Xms512m</jvmArg>
+								<jvmArg>-Xmx2g</jvmArg>
+							</jvmArgs>
 						</launcher>
 					</launchers>
 				</configuration>

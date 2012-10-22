@@ -11,24 +11,45 @@ import scala.collection.mutable.WrappedArray
 class BArrayBenchmark extends SimpleBenchmark {
 
   // var gr = ( 1 + math.sqrt(5) ) / 2; (0 to 24 by 2).map(a => math.round(math.pow(gr,a)))
-  // 1, 3, 7, 18, 47, 123, 322, 843, 2207, 5778, 15127, 39603, 103682, 271443, 710647, 1860498, 4870847
-  @Param(Array("3", "7", "18", "47", "123", "322", "843", "2207", "5778", "15127"))
+  // @Param(Array("3", "7", "18", "47", "123", "322", "843", "2207", "5778", "15127"))
+  @Param(Array(
+    "4",
+    "18",
+    "76",
+    "322",
+    "1364",
+    "5778",
+    "24476",
+    "103682",
+    "439204",
+    "1860498"))
   var size: Int = _
 
-  var vec: Vector[Int] = _
-  var rrbv: RRBV[Int] = _
-  var ba: BArray[Int] = _
+  type T = java.lang.Object
+
+  val e = new T()
+
+  var vec: Vector[T] = _
+  var rrbv: RRBV[T] = _
+  var ba: BArray[T] = _
   var idxs: Array[Int] = _ // relative positions at 0.25, 0.5 and 0.75
-  var list: List[Int] = _
-  var rndList: List[Int] = _
+  var list: List[T] = _
+  //  var rndList: List[T] = _
+  var arr: Array[T] = _
 
   override protected def setUp() {
     idxs = if (size > 0) Array(size / 4, size / 2, size * 3 / 4) else Array()
-    vec = Vector.empty ++ (0 until size)
-    rrbv = RRBV.empty ++ (0 until size)
-    ba = BArray.empty ++ (0 until size)
-    list = List.empty ++ (size to (size * 2))
-    rndList = List.empty ++ Random.shuffle((0 to size))
+    vec = Vector.empty ++ (0 until size).map(a => new T())
+    rrbv = RRBV.empty ++ vec
+    ba = BArray.empty ++ vec
+    list = List.empty ++ vec
+    //    rndList = List.empty ++ Random.shuffle(vec)
+    arr = new Array[T](size)
+    var i = 0;
+    while (i < arr.length) {
+      arr(i) = vec(i)
+      i += 1
+    }
   }
 
   def timeAppendSizeRRBV(reps: Int): Any = {
@@ -38,7 +59,7 @@ class BArrayBenchmark extends SimpleBenchmark {
       var j = 0
       v = RRBV()
       while (j < size) {
-        v = v :+ j
+        v = v :+ arr(j)
         j += 1
       }
       i += 1
@@ -53,7 +74,7 @@ class BArrayBenchmark extends SimpleBenchmark {
       var j = 0
       v = Vector()
       while (j < size) {
-        v = v :+ j
+        v = v :+ arr(j)
         j += 1
       }
       i += 1
@@ -68,7 +89,7 @@ class BArrayBenchmark extends SimpleBenchmark {
       var j = 0
       v = BArray()
       while (j < size) {
-        v = v :+ j
+        v = v :+ arr(j)
         j += 1
       }
       i += 1
@@ -76,56 +97,56 @@ class BArrayBenchmark extends SimpleBenchmark {
     v
   }
 
-  def timePrependSizeVector(reps: Int): Any = {
-    var i = 0
-    var a = vec
-    while (i < reps) {
-      var j = 0
-      a = Vector()
-      while (j < size) {
-        a = j +: a
-        j += 1
-      }
-      i += 1
-    }
-    a
-  }
-
-  def timePrependSizeRRBV(reps: Int): Any = {
-    var i = 0
-    var a = rrbv
-    while (i < reps) {
-      var j = 0
-      a = RRBV()
-      while (j < size) {
-        a = j +: a
-        j += 1
-      }
-      i += 1
-    }
-    a
-  }
-
-  def timePrependSizeBArray(reps: Int): Any = {
-    var i = 0
-    var a = ba
-    while (i < reps) {
-      var j = 0
-      a = BArray()
-      while (j < size) {
-        a = j +: a
-        j += 1
-      }
-      i += 1
-    }
-    a
-  }
+  //  def timePrependSizeVector(reps: Int): Any = {
+  //    var i = 0
+  //    var a = vec
+  //    while (i < reps) {
+  //      var j = 0
+  //      a = Vector()
+  //      while (j < size) {
+  //        a = arr(j) +: a
+  //        j += 1
+  //      }
+  //      i += 1
+  //    }
+  //    a
+  //  }
+  //
+  //  def timePrependSizeRRBV(reps: Int): Any = {
+  //    var i = 0
+  //    var a = rrbv
+  //    while (i < reps) {
+  //      var j = 0
+  //      a = RRBV()
+  //      while (j < size) {
+  //        a = arr(j) +: a
+  //        j += 1
+  //      }
+  //      i += 1
+  //    }
+  //    a
+  //  }
+  //
+  //  def timePrependSizeBArray(reps: Int): Any = {
+  //    var i = 0
+  //    var a = ba
+  //    while (i < reps) {
+  //      var j = 0
+  //      a = BArray()
+  //      while (j < size) {
+  //        a = arr(j) +: a
+  //        j += 1
+  //      }
+  //      i += 1
+  //    }
+  //    a
+  //  }
 
   def timeMapVector(reps: Int): Any = {
     var i = 0
     var a = vec
     while (i < reps) {
-      a = vec.map(x => x + 1)
+      a = vec.map(x => new T())
       i += 1
     }
     a
@@ -135,7 +156,7 @@ class BArrayBenchmark extends SimpleBenchmark {
     var i = 0
     var a = rrbv
     while (i < reps) {
-      a = rrbv.map(x => x + 1)
+      a = rrbv.map(x => new T())
       i += 1
     }
     a
@@ -145,7 +166,7 @@ class BArrayBenchmark extends SimpleBenchmark {
     var i = 0
     var a = ba
     while (i < reps) {
-      a = ba.map(x => x + 1)
+      a = ba.map(x => new T())
       i += 1
     }
     a
@@ -153,7 +174,7 @@ class BArrayBenchmark extends SimpleBenchmark {
 
   def timeForeachVector(reps: Int): Any = {
     var i = 0
-    var a = 0
+    var a = e
     while (i < reps) {
       vec.foreach(x => a = x)
       i += 1
@@ -163,7 +184,7 @@ class BArrayBenchmark extends SimpleBenchmark {
 
   def timeForeachRRBV(reps: Int): Any = {
     var i = 0
-    var a = 0
+    var a = e
     while (i < reps) {
       rrbv.foreach(x => a = x)
       i += 1
@@ -173,7 +194,7 @@ class BArrayBenchmark extends SimpleBenchmark {
 
   def timeForeachBArray(reps: Int): Any = {
     var i = 0
-    var a = 0
+    var a = e
     while (i < reps) {
       ba.foreach(x => a = x)
       i += 1
@@ -243,7 +264,7 @@ class BArrayBenchmark extends SimpleBenchmark {
 
   def timeHeadVector(reps: Int): Any = {
     var i = 0
-    var a = 0
+    var a = e
     while (i < reps) {
       a = vec.head
       i += 1
@@ -253,7 +274,7 @@ class BArrayBenchmark extends SimpleBenchmark {
 
   def timeHeadRRBV(reps: Int): Any = {
     var i = 0
-    var a = 0
+    var a = e
     while (i < reps) {
       a = rrbv.head
       i += 1
@@ -262,7 +283,7 @@ class BArrayBenchmark extends SimpleBenchmark {
   }
   def timeHeadBArray(reps: Int): Any = {
     var i = 0
-    var a = 0
+    var a = e
     while (i < reps) {
       a = ba.head
       i += 1
@@ -300,39 +321,39 @@ class BArrayBenchmark extends SimpleBenchmark {
     a
   }
 
-  def timeInitVector(reps: Int): Any = {
-    var i = 0
-    var a = vec
-    while (i < reps) {
-      a = vec.init
-      i += 1
-    }
-    a
-  }
-
-  def timeInitRRBV(reps: Int): Any = {
-    var i = 0
-    var a = rrbv
-    while (i < reps) {
-      a = rrbv.init
-      i += 1
-    }
-    a
-  }
-
-  def timeInitBArray(reps: Int): Any = {
-    var i = 0
-    var a = ba
-    while (i < reps) {
-      a = ba.init
-      i += 1
-    }
-    a
-  }
+  //  def timeInitVector(reps: Int): Any = {
+  //    var i = 0
+  //    var a = vec
+  //    while (i < reps) {
+  //      a = vec.init
+  //      i += 1
+  //    }
+  //    a
+  //  }
+  //
+  //  def timeInitRRBV(reps: Int): Any = {
+  //    var i = 0
+  //    var a = rrbv
+  //    while (i < reps) {
+  //      a = rrbv.init
+  //      i += 1
+  //    }
+  //    a
+  //  }
+  //
+  //  def timeInitBArray(reps: Int): Any = {
+  //    var i = 0
+  //    var a = ba
+  //    while (i < reps) {
+  //      a = ba.init
+  //      i += 1
+  //    }
+  //    a
+  //  }
 
   def timeGet3Vector(reps: Int): Any = {
     var i = 0
-    var a = 0
+    var a = e
     while (i < reps) {
       for { j <- idxs }
         a = vec(j)
@@ -343,7 +364,7 @@ class BArrayBenchmark extends SimpleBenchmark {
 
   def timeGet3RRBV(reps: Int): Any = {
     var i = 0
-    var a = 0
+    var a = e
     while (i < reps) {
       for { j <- idxs }
         a = rrbv(j)
@@ -354,7 +375,7 @@ class BArrayBenchmark extends SimpleBenchmark {
 
   def timeGet3BArray(reps: Int): Any = {
     var i = 0
-    var a = 0
+    var a = e
     while (i < reps) {
       for { j <- idxs }
         a = ba(j)
@@ -363,139 +384,144 @@ class BArrayBenchmark extends SimpleBenchmark {
     a
   }
 
-  def timeFilterTrueVector(reps: Int): Any = {
-    var i = 0
-    var a = vec
-    while (i < reps) {
-      a = vec.filter(x => x >= 0)
-      i += 1
-    }
-    a
-  }
+  //  def timeFilterTrueVector(reps: Int): Any = {
+  //    var i = 0
+  //    var a = vec
+  //    while (i < reps) {
+  //      a = vec.filter(x => x eq null)
+  //      i += 1
+  //    }
+  //    a
+  //  }
+  //
+  //  def timeFilterTrueRRBV(reps: Int): Any = {
+  //    var i = 0
+  //    var a = rrbv
+  //    while (i < reps) {
+  //      a = rrbv.filter(x => x eq null)
+  //      i += 1
+  //    }
+  //    a
+  //  }
+  //
+  //  def timeFilterTrueBArray(reps: Int): Any = {
+  //    var i = 0
+  //    var a = ba
+  //    while (i < reps) {
+  //      a = ba.filter(x => x eq null)
+  //      i += 1
+  //    }
+  //    a
+  //  }
 
-  def timeFilterTrueRRBV(reps: Int): Any = {
-    var i = 0
-    var a = rrbv
-    while (i < reps) {
-      a = rrbv.filter(x => x >= 0)
-      i += 1
-    }
-    a
-  }
-
-  def timeFilterTrueBArray(reps: Int): Any = {
-    var i = 0
-    var a = ba
-    while (i < reps) {
-      a = ba.filter(x => x >= 0)
-      i += 1
-    }
-    a
-  }
-
-  def timeTakeWhileTrueVector(reps: Int): Any = {
-    var i = 0
-    var a = vec
-    while (i < reps) {
-      a = vec.takeWhile(x => x >= 0)
-      i += 1
-    }
-    a
-  }
-
-  def timeTakeWhileTrueRRBV(reps: Int): Any = {
-    var i = 0
-    var a = rrbv
-    while (i < reps) {
-      a = rrbv.takeWhile(x => x >= 0)
-      i += 1
-    }
-    a
-  }
-
-  def timeTakeWhileTrueBArray(reps: Int): Any = {
-    var i = 0
-    var a = ba
-    while (i < reps) {
-      a = ba.takeWhile(x => x >= 0)
-      i += 1
-    }
-    a
-  }
+  //  def timeTakeWhileTrueVector(reps: Int): Any = {
+  //    var i = 0
+  //    var a = vec
+  //    while (i < reps) {
+  //      a = vec.takeWhile(x => x eq null)
+  //      i += 1
+  //    }
+  //    a
+  //  }
+  //
+  //  def timeTakeWhileTrueRRBV(reps: Int): Any = {
+  //    var i = 0
+  //    var a = rrbv
+  //    while (i < reps) {
+  //      a = rrbv.takeWhile(x => x eq null)
+  //      i += 1
+  //    }
+  //    a
+  //  }
+  //
+  //  def timeTakeWhileTrueBArray(reps: Int): Any = {
+  //    var i = 0
+  //    var a = ba
+  //    while (i < reps) {
+  //      a = ba.takeWhile(x => x eq null)
+  //      i += 1
+  //    }
+  //    a
+  //  }
 
   def timeUpdated3Vector(reps: Int): Any = {
     var i = 0
     var a = vec
     while (i < reps) {
       for { j <- idxs }
-        a = vec.updated(j, j)
+        a = vec.updated(j, new T())
       i += 1
     }
     a
   }
 
-        
-//  java.lang.ClassCastException: [I cannot be cast to [Ljava.lang.Object;
-//        at rrbvector.Vector.updateTrie(RRBVector.scala:771)
-//        at rrbvector.Vector.updateTrie(RRBVector.scala:763)
-//        at rrbvector.Vector.updateAt(RRBVector.scala:746)
-//        at rrbvector.Vector.updated(RRBVector.scala:126)
-//  def timeUpdated3RRBV(reps: Int): Any = {
-//    var i = 0
-//    var a = rrbv
-//    while (i < reps) {
-//      for { j <- idxs }
-//        a = rrbv.updated(j, j)
-//      i += 1
-//    }
-//    a
-//  }
+  def timeUpdated3RRBV(reps: Int): Any = {
+    var i = 0
+    var a = rrbv
+    while (i < reps) {
+      for { j <- idxs }
+        a = rrbv.updated(j, new T())
+      i += 1
+    }
+    a
+  }
 
   def timeUpdated3BArray(reps: Int): Any = {
     var i = 0
     var a = ba
     while (i < reps) {
       for { j <- idxs }
-        a = ba.updated(j, j)
+        a = ba.updated(j, new T())
       i += 1
     }
     a
   }
 
-  def timeInserted3Vector(reps: Int): Any = {
+  def timePatchInsert3Vector(reps: Int): Any = {
     var i = 0
     var a = vec
     while (i < reps) {
       for { j <- idxs }
-        a = vec.patch(j, Vector(j), 0)
+        a = vec.patch(j, Vector(new T()), 0)
       i += 1
     }
     a
   }
 
-  def timeInserted3RRBV(reps: Int): Any = {
+  def timePatchInsert3RRBV(reps: Int): Any = {
     var i = 0
     var a = rrbv
     while (i < reps) {
       for { j <- idxs }
-        a = rrbv.patch(j, RRBV(j), 0)
+        a = rrbv.patch(j, RRBV(new T()), 0)
       i += 1
     }
     a
   }
 
-  def timeInserted3BArray(reps: Int): Any = {
+  def timePatchInsert3BArray(reps: Int): Any = {
     var i = 0
     var a = ba
     while (i < reps) {
       for { j <- idxs }
-        a = ba.inserted(j, j)
+        a = ba.patch(j, BArray(new T()), 0)
       i += 1
     }
     a
   }
 
-  def timeRemoved3Vector(reps: Int): Any = {
+  //  def timeInserted3BArray(reps: Int): Any = {
+  //    var i = 0
+  //    var a = ba
+  //    while (i < reps) {
+  //      for { j <- idxs }
+  //        a = ba.inserted(j, new T())
+  //      i += 1
+  //    }
+  //    a
+  //  }
+
+  def timePatchRemove3Vector(reps: Int): Any = {
     var i = 0
     var a = vec
     while (i < reps) {
@@ -506,7 +532,7 @@ class BArrayBenchmark extends SimpleBenchmark {
     a
   }
 
-  def timeRemoved3RRBV(reps: Int): Any = {
+  def timePatchRemove3RRBV(reps: Int): Any = {
     var i = 0
     var a = rrbv
     while (i < reps) {
@@ -517,16 +543,27 @@ class BArrayBenchmark extends SimpleBenchmark {
     a
   }
 
-  def timeRemoved3BArray(reps: Int): Any = {
+  def timePatchRemove3BArray(reps: Int): Any = {
     var i = 0
     var a = ba
     while (i < reps) {
       for { j <- idxs }
-        a = ba.removed(j)
+        a = ba.patch(j, BArray.empty, 1)
       i += 1
     }
     a
   }
+
+  //  def timeRemoved3BArray(reps: Int): Any = {
+  //    var i = 0
+  //    var a = ba
+  //    while (i < reps) {
+  //      for { j <- idxs }
+  //        a = ba.removed(j)
+  //      i += 1
+  //    }
+  //    a
+  //  }
 
   def timeSplitAt3Vector(reps: Int): Any = {
     var i = 0
@@ -624,41 +661,41 @@ class BArrayBenchmark extends SimpleBenchmark {
     a
   }
 
-  def timeReverseVector(reps: Int): Any = {
-    var i = 0
-    var a = vec
-    while (i < reps) {
-      a = vec.reverse
-      i += 1
-    }
-    a
-  }
-
-  def timeReverseRRBV(reps: Int): Any = {
-    var i = 0
-    var a = rrbv
-    while (i < reps) {
-      a = rrbv.reverse
-      i += 1
-    }
-    a
-  }
-
-  def timeReverseBArray(reps: Int): Any = {
-    var i = 0
-    var a = ba
-    while (i < reps) {
-      a = ba.reverse
-      i += 1
-    }
-    a
-  }
-
+  //  def timeReverseVector(reps: Int): Any = {
+  //    var i = 0
+  //    var a = vec
+  //    while (i < reps) {
+  //      a = vec.reverse
+  //      i += 1
+  //    }
+  //    a
+  //  }
+  //
+  //  def timeReverseRRBV(reps: Int): Any = {
+  //    var i = 0
+  //    var a = rrbv
+  //    while (i < reps) {
+  //      a = rrbv.reverse
+  //      i += 1
+  //    }
+  //    a
+  //  }
+  //
+  //  def timeReverseBArray(reps: Int): Any = {
+  //    var i = 0
+  //    var a = ba
+  //    while (i < reps) {
+  //      a = ba.reverse
+  //      i += 1
+  //    }
+  //    a
+  //  }
+  //
   def timeReverseMapVector(reps: Int): Any = {
     var i = 0
     var a = vec
     while (i < reps) {
-      a = vec.reverseMap(_ + 1)
+      a = vec.reverseMap(_ => new T())
       i += 1
     }
     a
@@ -668,7 +705,7 @@ class BArrayBenchmark extends SimpleBenchmark {
     var i = 0
     var a = rrbv
     while (i < reps) {
-      a = rrbv.reverseMap(_ + 1)
+      a = rrbv.reverseMap(_ => new T())
       i += 1
     }
     a
@@ -678,24 +715,24 @@ class BArrayBenchmark extends SimpleBenchmark {
     var i = 0
     var a = ba
     while (i < reps) {
-      a = ba.reverseMap(_ + 1)
+      a = ba.reverseMap(_ => new T())
       i += 1
     }
     a
   }
 
-  def timeBinsertedBArray(reps: Int): Any = {
-    var i = 0
-    var a = BArray.empty[Int]
-    while (i < reps) {
-      a = BArray.empty[Int]
-      for (x <- rndList) {
-        a = a.binserted(x)
-      }
-      i += 1
-    }
-    a
-  }
+  //  def timeBinsertedBArray(reps: Int): Any = {
+  //    var i = 0
+  //    var a = BArray.empty[Int]
+  //    while (i < reps) {
+  //      a = BArray.empty[Int]
+  //      for (x <- rndList) {
+  //        a = a.binserted(x)
+  //      }
+  //      i += 1
+  //    }
+  //    a
+  //  }
   //
   //  def timeBinsertedVector(reps: Int): Any = {
   //    var i = 0
