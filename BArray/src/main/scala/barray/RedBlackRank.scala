@@ -11,18 +11,7 @@ private[barray] object RedBlackRank {
 
   def isEmpty(tree: Tree[_]): Boolean = tree eq null
 
-  def ofValue[B](v: B): Tree[B] = BlackTree(v, null, null)
-
-  def join[B](left: Tree[B], right: Tree[B]): Tree[B] = {
-    if ((left eq null) && (right eq null)) null
-    else if (right eq null) left
-    else if (left eq null) right
-    else {
-      // use a temporary node for rebalancing
-      val tmp = cache(1).asInstanceOf[Tree[B]]
-      blacken(del(rebalance(tmp, left, right), count(left) + 1))
-    }
-  }
+  def apply[B](v: B): Tree[B] = BlackTree(v, null, null)
 
   def insertNth[B](tree: Tree[B], index: Int, v: B): Tree[B] = blacken(insNth(tree, index + 1, v))
   def deleteNth[B](tree: Tree[B], index: Int): Tree[B] = blacken(del(tree, index + 1))
@@ -30,8 +19,9 @@ private[barray] object RedBlackRank {
 
   def count(tree: Tree[_]) = if (tree eq null) 0 else tree.count
 
-  def take[B](tree: Tree[B], n: Int): Tree[B] = blacken(doTake(tree, n))
+  def concat[B](left: Tree[B], right: Tree[B]): Tree[B] = blacken(doCat(left, right))
 
+  def take[B](tree: Tree[B], n: Int): Tree[B] = blacken(doTake(tree, n))
   def slice[B](tree: Tree[B], from: Int, until: Int): Tree[B] = blacken(doSlice(tree, from, until))
   def drop[B](tree: Tree[B], n: Int): Tree[B] = blacken(doDrop(tree, n))
 
@@ -222,6 +212,17 @@ private[barray] object RedBlackRank {
     else append(tree.left, tree.right)
   }
 
+  private[this] def doCat[B](left: Tree[B], right: Tree[B]): Tree[B] = {
+    if (left eq null) right
+    else if (right eq null) left
+    else if (left.count == 1) insNth(right, 1, left.value)
+    else if (right.count == 1) insNth(left, left.count + 1, right.value)
+    else if (left.count < right.count)
+      rebalance(greatest(left), blacken(del(left, left.count)), right)
+    else
+      rebalance(smallest(right), left, blacken(del(right, 1)))
+  }
+
   private[this] def doDrop[B](tree: Tree[B], n: Int): Tree[B] = {
     if (n <= 0) return tree
     if (n >= RedBlackRank.this.count(tree)) return null
@@ -242,7 +243,6 @@ private[barray] object RedBlackRank {
     else if (newRight eq null) updNth(tree.left, n, tree.value, false)
     else rebalance(tree, tree.left, newRight)
   }
-
   private[this] def doSlice[B](tree: Tree[B], from: Int, until: Int): Tree[B] = {
     if (tree eq null) return null
     val count = RedBlackRank.this.count(tree.left)
@@ -353,7 +353,7 @@ private[barray] object RedBlackRank {
     @(inline @getter) final val left: Tree[B],
     @(inline @getter) final val right: Tree[B])
     extends Serializable {
-    final val count: Int = 1 + RedBlackRank.count(left) + RedBlackRank.count(right)
+    @(inline @getter) final val count: Int = 1 + RedBlackRank.count(left) + RedBlackRank.count(right)
     def black: Tree[B]
     def red: Tree[B]
   }
@@ -387,24 +387,24 @@ private[barray] object RedBlackRank {
 
     override def hasNext: Boolean = next ne null
 
-    protected def lt(tree: Tree[B]): Tree[B]
-    protected def gt(tree: Tree[B]): Tree[B]
+    protected def nextLt(tree: Tree[B]): Tree[B]
+    protected def nextGt(tree: Tree[B]): Tree[B]
 
     override def next: B = next match {
       case null =>
         throw new NoSuchElementException("next on empty iterator")
       case tree =>
-        next = findNext(gt(tree))
+        next = findNext(nextGt(tree))
         tree.value
     }
 
     @tailrec
     private[this] def findNext(tree: Tree[B]): Tree[B] = {
       if (tree eq null) popPath()
-      else if (lt(tree) eq null) tree
+      else if (nextLt(tree) eq null) tree
       else {
         pushPath(tree)
-        findNext(lt(tree))
+        findNext(nextLt(tree))
       }
     }
     private[this] def pushPath(tree: Tree[B]) {
@@ -434,12 +434,12 @@ private[barray] object RedBlackRank {
   }
 
   private[this] final class TreeIteratorFwd[B](tree: Tree[B]) extends TreeIterator(tree) {
-    @inline override protected def lt(tree: Tree[B]): Tree[B] = tree.left
-    @inline override protected def gt(tree: Tree[B]): Tree[B] = tree.right
+    @inline override def nextLt(tree: Tree[B]): Tree[B] = tree.left
+    @inline override def nextGt(tree: Tree[B]): Tree[B] = tree.right
   }
   private[this] final class TreeIteratorBwd[B](tree: Tree[B]) extends TreeIterator(tree) {
-    @inline override protected def lt(tree: Tree[B]): Tree[B] = tree.right
-    @inline override protected def gt(tree: Tree[B]): Tree[B] = tree.left
+    @inline override def nextLt(tree: Tree[B]): Tree[B] = tree.right
+    @inline override def nextGt(tree: Tree[B]): Tree[B] = tree.left
   }
 
   val CACHE_SIZE = 1 << 10
@@ -452,9 +452,7 @@ private[barray] object RedBlackRank {
     cache(1) = BlackTree(null, null, null)
   }
 
-  /**
-   * Return properly balanced and colored tree filled with null values.
-   */
+  /** Return a properly balanced and colored tree. Tree values are null. */
   def allocate[B](n: Int): Tree[B] = {
 
     /**
@@ -474,7 +472,7 @@ private[barray] object RedBlackRank {
      * Return depth of tree.
      * @param n Size of the tree.
      */
-    def depthOf(n: Int): Int = { // TODO: this can be optimized?
+    def depthOf(n: Int): Int = { // same as 32 - java.lang.Integer.numberOfLeadingZeros(n)
       var i = 0
       var a = n
       while (a > 0) {

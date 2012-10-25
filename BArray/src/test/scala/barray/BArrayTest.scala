@@ -19,6 +19,15 @@ class BArrayTest extends FunSuite {
 
   private[this] def invariants[A](t: BArray[A]) = RedBlackRank.invariants(t.tree)
 
+  private[this] def rndBa = {
+    var b = BArray.empty[Int]
+    for (i <- 0 to rnd.nextInt(N + 1)) {
+      val j = rnd.nextInt(b.length + 1)
+      b = b.inserted(j, i)
+    }
+    b
+  }
+
   test("foreach/iterator consistency") {
     val it = ba.iterator
     var consistent = true
@@ -47,11 +56,14 @@ class BArrayTest extends FunSuite {
   }
 
   test("++") {
-    val l = vec.toList
-    assert((ba ++ ba) === (vec ++ vec))
-    assert((ba ++ vec) === (vec ++ ba))
-    assert((ba ++ l) === (vec ++ l))
-    invariants(ba ++ ba)
+    val l = rndBa
+    val r = rndBa
+    val lVec = l.toVector
+    val rVec = r.toVector
+    assert((l ++ r) === (lVec ++ rVec))
+    invariants(l ++ r)
+    assert((l ++ lVec) === (lVec ++ lVec))
+    assert((l ++ lVec.toList) === (lVec ++ lVec))
   }
 
   test("apply") {
@@ -85,13 +97,13 @@ class BArrayTest extends FunSuite {
 
   test(":+") {
     var b = BArray.empty[Int]
-    vec.foreach(a => b :+= a)
+    vec.foreach(a => { b :+= a; invariants(b) })
     assert(vec === b)
   }
 
   test("+:") {
     var b = BArray.empty[Int]
-    vec.foreach(a => b +:= a)
+    vec.foreach(a => { b +:= a; invariants(b) })
     assert(vec.reverse === b)
   }
 
@@ -176,15 +188,27 @@ class BArrayTest extends FunSuite {
   }
 
   test("inserted") {
-    val i = rnd.nextInt(N + 1)
-    assert(ba.inserted(i, i + 1) === vec.patch(i, Vector(i + 1), 0))
-    invariants(ba.inserted(i, i + 1))
+    var a = Vector.empty[Int]
+    var b = BArray.empty[Int]
+    for (i <- 0 to N) {
+      val j = rnd.nextInt(a.length + 1)
+      a = a.patch(j, Vector(i), 0)
+      b = b.inserted(j, i)
+      invariants(b)
+    }
+    assert(a === b)
   }
 
   test("removed") {
-    val i = rnd.nextInt(N + 1)
-    assert(ba.removed(i) === vec.patch(i, Vector.empty, 1))
-    invariants(ba.removed(i))
+    var a = vec
+    var b = ba
+    for (i <- 1 to N) {
+      val j = rnd.nextInt(a.length)
+      a = a.patch(j, Vector(), 1)
+      b = b.removed(j)
+      invariants(b)
+    }
+    assert(a === b)
   }
 
   test("patch") {
