@@ -36,21 +36,7 @@ object BArray extends SeqFactory[BArray] {
   private[barray] val NIL = new BArray[Nothing]()
   @inline override def empty[A]: BArray[A] = NIL
 
-  private def toTree[A](xs: TraversableOnce[A]): RB.Tree[A] = {
-    val i = toIterator(xs)
-    RB.blindMap(RB.allocate(i.size), i.next)
-  }
-
-  private[this] def toIterator[A](xs: TraversableOnce[A]): Iterator[A] = {
-    val b = new BArrayBuilder[A]()
-    xs.foreach(b.+=)
-    b.iterator
-  }
-
-  private def toTree[A](seq: IndexedSeqLike[A, _]): RB.Tree[A] = {
-    val i = seq.asInstanceOf[IndexedSeqLike[A, _]].iterator
-    RB.blindMap(RB.allocate(seq.size), i.next())
-  }
+  @inline def apply[A](a: A) = new BArray(RB.apply(a))
 
 }
 
@@ -150,21 +136,10 @@ final class BArray[+A] private[barray] (private[barray] val tree: RB.Tree[A])
   override def dropWhile(p: A => Boolean) = drop(countWhile(p))
   override def span(p: A => Boolean) = splitAt(countWhile(p))
 
-  private[this] def concat[B](left: RB.Tree[B], right: RB.Tree[B]): BArray[B] = {
-    new BArray(RB.concat(left, right))
-  }
-
   override def ++[B >: A, That](that: GenTraversableOnce[B])(implicit bf: CanBuildFrom[BArray[A], B, That]): That = {
-    bf match {
-      case _: BArray.BArrayReusableCBF => that.seq match {
-        case b: BArray[B] =>
-          concat(tree, b.tree).asInstanceOf[That]
-        case i: IndexedSeqLike[B, _] =>
-          concat(tree, BArray.toTree(i)).asInstanceOf[That]
-        case s =>
-          concat(tree, BArray.toTree(s)).asInstanceOf[That]
-      }
-      case _ => super.++(that.seq)(bf)
+    that match {
+      case b: BArray[B] => new BArray(RB.concat(tree, b.tree)).asInstanceOf[That]
+      case _ => super.++(that)
     }
   }
 
@@ -186,16 +161,11 @@ final class BArray[+A] private[barray] (private[barray] val tree: RB.Tree[A])
   /** Same as patch(index, Repr(elem), 0) but faster */
   @inline def inserted[B >: A, That](index: Int, elem: B)(implicit bf: CanBuildFrom[BArray[A], B, That]): That = bf match {
     case _: BArray.BArrayReusableCBF => {
-      val idx =
-        if (index < 0) 0
-        else if (index > length) length
-        else index
+      val idx = if (index < 0) 0 else if (index > length) length else index
       new BArray(RB.insertNth(tree, idx, elem)).asInstanceOf[That]
     }
-    case _ => super.patch(index, single(elem), 0)(bf)
+    case _ => super.patch(index, BArray.apply(elem), 0)
   }
-  @inline
-  private[this] def single[B](elem: B) = new BArray(RB.apply(elem))
 
   /** Same as patch(index, Repr.empty, 1) but faster */
   @inline def removed[B >: A, That](index: Int)(implicit bf: CanBuildFrom[BArray[A], B, That]): That = bf match {
@@ -203,27 +173,28 @@ final class BArray[+A] private[barray] (private[barray] val tree: RB.Tree[A])
       if (index >= length) this.asInstanceOf[That]
       else new BArray(RB.deleteNth(tree, if (index < 0) 0 else index)).asInstanceOf[That]
     }
-    case _ => super.patch(index, BArray.empty, 1)(bf)
+    case _ => super.patch(index, BArray.empty, 1)
   }
 
+  // based on RRBVector patch
   override def patch[B >: A, That](from: Int, patch: GenSeq[B], replaced: Int)(implicit bf: CanBuildFrom[BArray[A], B, That]): That = bf match {
     case _: BArray.BArrayReusableCBF => {
-      if (patch.isEmpty && replaced == 1) {
-        removed(from)(bf)
-      } else {
-        if (patch.seq.isInstanceOf[IndexedSeqLike[B, _]]) {
-          val thatSeq = patch.seq
-          if (thatSeq.length == 1)
-            if (replaced == 1) updated(from, thatSeq.head)(bf)
-            else inserted(from, thatSeq.head)(bf)
-          else
-            super.patch(from, patch, replaced)(bf)
-        } else {
-          super.patch(from, patch, replaced)(bf)
+      val insert = patch.nonEmpty
+      val delete = replaced > 0
+      if (insert || delete) {
+        val insertOne = patch.seq.lengthCompare(1) == 0
+        val deleteOne = replaced == 1
+        if (insertOne && deleteOne) updated(from, patch.head)
+        else if (insertOne && !delete) inserted(from, patch.head)
+        else if (!insert && deleteOne) removed(from)
+        else {
+          val prefix = take(from)
+          val rest = drop(from + replaced)
+          ((prefix ++ patch).asInstanceOf[BArray[B]] ++ rest).asInstanceOf[That]
         }
-      }
+      } else this.asInstanceOf[That]
     }
-    case _ => super.patch(from, patch, replaced)(bf)
+    case _ => super.patch(from, patch, replaced)
   }
 
   /**
@@ -285,52 +256,44 @@ final class BArray[+A] private[barray] (private[barray] val tree: RB.Tree[A])
 
 final class BArrayBuilder[A]() extends Builder[A, BArray[A]] {
 
-  private[this] var arr: Array[A] = mkArr
+  private[this] var acc = RB.empty[A]
 
-  private[this] var size = 0;
+  private[this] var ib = new IteratorBuilder[A]
 
-  override def sizeHint(size: Int) {
-    if (size > this.size) arr = resize(size)
-  }
+  //override def sizeHint(size: Int) = ib.sizeHint(size)
 
-  override def +=(a: A): this.type = {
-    ensureCapacity()
-    arr(size) = a
-    size += 1
-    this
-  }
-  override def ++=(xs: TraversableOnce[A]): this.type =
-    super.++=(xs)
-  override def clear() { arr = mkArr; size = 0 }
-  override def result: BArray[A] = {
-    val i = iterator
-    new BArray(RB.blindMap(RB.allocate(i.size), i.next()))
-  }
+  def +=(elem: A): this.type = { ib += elem; this }
 
-  def iterator: Iterator[A] = new Iterator[A] {
-    private[this] val a = arr.asInstanceOf[Array[A]]
-    private[this] var i = 0
-    override final val size = BArrayBuilder.this.size
-    @inline override final def hasNext = i < size
-    override final def next =
-      if (hasNext) { val e = a(i); i += 1; e }
-      else Iterator.empty.next
-  }
-
-  private[this] def ensureCapacity() {
-    val minSize = size + 1
-    if (minSize > arr.length) {
-      val len = arr.length;
-      var newLen = len + (len >> 1);
-      if (newLen - minSize < 0) newLen = minSize;
-      arr = resize(newLen)
+  private[this] def commitIb() {
+    if (ib.nonEmpty) {
+      val i = ib.result
+      acc = RB.concat(acc, RB.blindMap(RB.allocate(i.size), i.next()))
+      ib = new IteratorBuilder[A]
     }
   }
 
-  @inline private[this] def mkArr: Array[A] =
-    new Array[AnyRef](10).asInstanceOf[Array[A]]
+  override def ++=(xs: TraversableOnce[A]): this.type = {
+    xs match {
+      case b: BArray[A] => {
+        commitIb()
+        acc = RB.concat(acc, b.tree)
+        this
+      }
+      case v: IndexedSeqLike[A, _] => {
+        commitIb()
+        val i = v.iterator
+        acc = RB.concat(acc, RB.blindMap(RB.allocate(v.size), i.next()))
+        this
+      }
+      case _ => { xs.seq foreach ib.+=; this }
+    }
+  }
 
-  @inline private[this] def resize(n: Int): Array[A] =
-    java.util.Arrays.copyOf(arr.asInstanceOf[Array[AnyRef]], n).asInstanceOf[Array[A]]
+  def result: BArray[A] = { commitIb(); new BArray(acc) }
+
+  def clear(): Unit = {
+    ib = new IteratorBuilder[A]
+    acc = RB.empty[A]
+  }
 
 }
