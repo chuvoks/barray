@@ -11,6 +11,8 @@ private[barray] object RedBlackRank {
 
   def isEmpty(tree: Tree[_]): Boolean = tree eq null
 
+  def empty[B]: Tree[B] = null
+  
   def apply[B](v: B): Tree[B] = BlackTree(v, null, null)
 
   def insertNth[B](tree: Tree[B], index: Int, v: B): Tree[B] = blacken(insNth(tree, index + 1, v))
