@@ -266,6 +266,23 @@ private[barray] object RedBlackRank {
     else rebalance(tree, newLeft, newRight)
   }
 
+  private[this] final class Lst[A](
+    @(inline @getter) final val head: A,
+    @(inline @getter) final val tail: Lst[A]) {
+    def foldLeft[B](z: B)(f: (B, A) => B): B = {
+      var acc = z
+      var these = this
+      while (these ne null) {
+        acc = f(acc, these.head)
+        these = these.tail
+      }
+      acc
+    }
+  }
+  private[this] final object Lst {
+    @inline def cons[B](x: B, xs: Lst[B]): Lst[B] = new Lst(x, xs)
+  }
+
   // The zipper returned might have been traversed left-most (always the left child)
   // or right-most (always the right child). Left trees are traversed right-most,
   // and right trees are traversed leftmost.
@@ -275,53 +292,50 @@ private[barray] object RedBlackRank {
   // whether the zipper was traversed left-most or right-most.
 
   // If the trees were balanced, returns an empty zipper
-  private[this] def compareDepth[B](left: Tree[B], right: Tree[B]): (List[Tree[B]], Boolean, Boolean, Int) = {
+  private[this] def compareDepth[B](left: Tree[B], right: Tree[B]): (Lst[Tree[B]], Boolean, Boolean, Int) = {
+    import Lst.cons
     // Once a side is found to be deeper, unzip it to the bottom
-    def unzip(zipper: List[Tree[B]], leftMost: Boolean): List[Tree[B]] = {
+    def unzip(zipper: Lst[Tree[B]], leftMost: Boolean): Lst[Tree[B]] = {
       val next = if (leftMost) zipper.head.left else zipper.head.right
-      next match {
-        case null => zipper
-        case node => unzip(node :: zipper, leftMost)
-      }
+      if (next eq null) zipper
+      else unzip(cons(next, zipper), leftMost)
     }
-
     // Unzip left tree on the rightmost side and right tree on the leftmost side until one is
     // found to be deeper, or the bottom is reached
     def unzipBoth(left: Tree[B],
       right: Tree[B],
-      leftZipper: List[Tree[B]],
-      rightZipper: List[Tree[B]],
-      smallerDepth: Int): (List[Tree[B]], Boolean, Boolean, Int) = {
+      leftZipper: Lst[Tree[B]],
+      rightZipper: Lst[Tree[B]],
+      smallerDepth: Int): (Lst[Tree[B]], Boolean, Boolean, Int) = {
       if (isBlackTree(left) && isBlackTree(right)) {
-        unzipBoth(left.right, right.left, left :: leftZipper, right :: rightZipper, smallerDepth + 1)
+        unzipBoth(left.right, right.left, cons(left, leftZipper), cons(right, rightZipper), smallerDepth + 1)
       } else if (isRedTree(left) && isRedTree(right)) {
-        unzipBoth(left.right, right.left, left :: leftZipper, right :: rightZipper, smallerDepth)
+        unzipBoth(left.right, right.left, cons(left, leftZipper), cons(right, rightZipper), smallerDepth)
       } else if (isRedTree(right)) {
-        unzipBoth(left, right.left, leftZipper, right :: rightZipper, smallerDepth)
+        unzipBoth(left, right.left, leftZipper, cons(right, rightZipper), smallerDepth)
       } else if (isRedTree(left)) {
-        unzipBoth(left.right, right, left :: leftZipper, rightZipper, smallerDepth)
+        unzipBoth(left.right, right, cons(left, leftZipper), rightZipper, smallerDepth)
       } else if ((left eq null) && (right eq null)) {
-        (Nil, true, false, smallerDepth)
+        (null, true, false, smallerDepth)
       } else if ((left eq null) && isBlackTree(right)) {
         val leftMost = true
-        (unzip(right :: rightZipper, leftMost), false, leftMost, smallerDepth)
+        (unzip(cons(right, rightZipper), leftMost), false, leftMost, smallerDepth)
       } else if (isBlackTree(left) && (right eq null)) {
         val leftMost = false
-        (unzip(left :: leftZipper, leftMost), false, leftMost, smallerDepth)
+        (unzip(cons(left, leftZipper), leftMost), false, leftMost, smallerDepth)
       } else {
         sys.error("unmatched trees in unzip: " + left + ", " + right)
       }
     }
-    unzipBoth(left, right, Nil, Nil, 0)
+    unzipBoth(left, right, null, null, 0)
   }
 
   private[this] def rebalance[B](tree: Tree[B], newLeft: Tree[B], newRight: Tree[B]) = {
     // This is like drop(n-1), but only counting black nodes
-    def findDepth(zipper: List[Tree[B]], depth: Int): List[Tree[B]] = zipper match {
-      case head :: tail if isBlackTree(head) =>
-        if (depth == 1) zipper else findDepth(tail, depth - 1)
-      case _ :: tail => findDepth(tail, depth)
-      case Nil => sys.error("Defect: unexpected empty zipper while computing range")
+    def findDepth(zipper: Lst[Tree[B]], depth: Int): Lst[Tree[B]] = {
+      if (isBlackTree(zipper.head))
+        if (depth == 1) zipper else findDepth(zipper.tail, depth - 1)
+      else findDepth(zipper.tail, depth)
     }
 
     // Blackening the smaller tree avoids balancing problems on union;
