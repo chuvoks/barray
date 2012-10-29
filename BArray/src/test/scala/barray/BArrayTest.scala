@@ -211,19 +211,28 @@ class BArrayTest extends FunSuite {
     assert(a === b)
   }
 
-  test("patch") {
+  test("patchInsertOne") {
     val i = rnd.nextInt(N + 1)
-    // removed
-    assert(ba.patch(i, BArray.empty, 1) === vec.patch(i, Vector.empty, 1))
-    // inserted
     assert(ba.patch(i, BArray(i + 1), 0) === vec.patch(i, Vector(i + 1), 0))
-    // updated
-    assert(ba.patch(i, BArray(i + 1), 1) === vec.patch(i, Vector(i + 1), 1))
+  }
 
-    // non-special cases
-    assert(ba.patch(i, BArray(0, 1, 2), 0) === vec.patch(i, Vector(0, 1, 2), 0))
-    assert(ba.patch(i, BArray(0, 1, 2), 2) === vec.patch(i, Vector(0, 1, 2), 2))
-    assert(ba.patch(i, BArray.empty, 2) === vec.patch(i, Vector.empty, 2))
+  test("patchRemoveOne") {
+    val i = rnd.nextInt(N + 1)
+    assert(ba.patch(i, BArray.empty, 1) === vec.patch(i, Vector.empty, 1))
+  }
+
+  test("patchUpdateOne") {
+    if (N > 0) {
+      val i = rnd.nextInt(N)
+      assert(ba.patch(i, BArray(-1), 1) === vec.patch(i, Vector(-1), 1))
+    }
+  }
+
+  test("patch") {
+    val from = rnd.nextInt(N + 1)
+    val removed = rnd.nextInt(N + 1)
+    val patch = rndBa
+    assert(ba.patch(from, patch, removed) === vec.patch(from, patch, removed))
   }
 
   test("binserted") {

@@ -12,12 +12,12 @@ private[barray] object RedBlackRank {
   def isEmpty(tree: Tree[_]): Boolean = tree eq null
 
   def empty[B]: Tree[B] = null
-  
+
   def apply[B](v: B): Tree[B] = BlackTree(v, null, null)
 
   def insertNth[B](tree: Tree[B], index: Int, v: B): Tree[B] = blacken(insNth(tree, index + 1, v))
   def deleteNth[B](tree: Tree[B], index: Int): Tree[B] = blacken(del(tree, index + 1))
-  def updateNth[B, B1 >: B](tree: Tree[B], n: Int, v: B1, overwrite: Boolean): Tree[B1] = blacken(updNth(tree, n + 1, v, overwrite))
+  def updateNth[B, B1 >: B](tree: Tree[B], n: Int, v: B1, overwrite: Boolean): Tree[B1] = blacken(setNth(tree, n + 1, v))
 
   def count(tree: Tree[_]) = if (tree eq null) 0 else tree.count
 
@@ -117,6 +117,14 @@ private[barray] object RedBlackRank {
       mkTree(isBlack, xv, a, r)
   }
 
+  private[this] def setNth[B, B1 >: B](tree: Tree[B], idx: Int, v: B1): Tree[B1] = if (tree eq null) {
+    null
+  } else {
+    val rank = count(tree.left) + 1
+    if (idx < rank) mkTree(isBlackTree(tree), tree.value, setNth(tree.left, idx, v), tree.right)
+    else if (idx > rank) mkTree(isBlackTree(tree), tree.value, tree.left, setNth(tree.right, idx - rank, v))
+    else mkTree(isBlackTree(tree), v, tree.left, tree.right)
+  }
   private[this] def updNth[B, B1 >: B](tree: Tree[B], idx: Int, v: B1, overwrite: Boolean): Tree[B1] = if (tree eq null) {
     RedTree(v, null, null)
   } else {
