@@ -1,12 +1,2 @@
-Balanced tree based IndexedSeq implementation for Scala
-=======================================================
-
- - BArray/		Actual implementation
- - BArrayBench/		Google Caliper benchmark suite
-
-Source code includes RRB-Tree variant of Vector for performance 
-comparison purposes:
-  BArray/src/main/scala/rrbvector/RRBVector.scala
-For latest version, please see: 
-  https://github.com/TiarkRompf/rrbtrees
+Moved to https://github.com/chuvoks/rbvector
 
